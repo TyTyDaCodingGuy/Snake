@@ -1,0 +1,320 @@
+<!DOCTYPE html>
+<html>
+<head>
+  <title>Pong Game</title>
+  <style>
+:-webkit-full-screen #fullscreen {
+  display: none;
+}
+
+:-moz-full-screen #fullscreen {
+  display: none;
+}
+
+:-ms-fullscreen #fullscreen {
+  display: none; 
+}
+
+:fullscreen #fullscreen {
+  display: none;
+}
+
+body.dark-mode {
+  background-color: black;
+  color: white; 
+}
+
+body.dark-mode #pong {
+  background-color: #333;
+}
+
+body.dark-mode .dotted-line {
+  border-color: #555; 
+}
+
+  </style>
+</head>
+<body>
+
+  <canvas id="pong" width="600" height="400"></canvas>
+  <button id="fullscreen">Fullscreen</button>
+  <button id="darkmode">Dark Mode</button>
+
+  <script>
+    
+    // Game variables
+    var fullscreenButton = document.getElementById("fullscreen");
+    var canvas = document.getElementById("pong");
+    var context = canvas.getContext("2d");
+    var playerScore = 0;
+    var aiScore = 0;
+    var ballSpeed = 5;
+    var isPaused = false;
+    
+    // Paddle variables
+    const paddleHeight = 100;
+    const paddleWidth = 10;
+    var paddleX = 10; 
+    var paddleY = canvas.height/2 - paddleHeight/2;
+    
+    // AI paddle variables
+    var aiPaddleX = canvas.width - 20;
+    var aiPaddleY = canvas.height/2 - paddleHeight/2;
+    
+    // Ball variables
+    var ballX = canvas.width/2;
+    var ballY = canvas.height/2;
+    var ballSpeedX = ballSpeed;
+    var ballSpeedY = ballSpeed;
+
+    var darkMode = false;
+
+var darkModeButton = document.getElementById("darkmode");
+
+darkModeButton.addEventListener("click", function() {
+  darkMode = !darkMode;
+  document.body.classList.toggle("dark-mode", darkMode);
+});
+    
+    // Handle mouse movement
+    canvas.addEventListener('mousemove', function(e) {
+      paddleY = e.clientY - paddleHeight/2;
+    });
+
+    document.addEventListener('fullscreenchange', function() {
+
+    if (document.fullscreenElement) {
+      canvas.width = window.innerWidth;
+     canvas.height = window.innerHeight; 
+    } else {
+     canvas.width = 600; 
+     canvas.height = 400;
+    }
+    });
+    
+    // Main game loop
+    function gameLoop() {
+
+      fullscreenButton.addEventListener("click", function() {
+
+if (!document.fullscreenElement) {
+    canvas.requestFullscreen().catch(err => {
+      alert(`Error attempting to enable fullscreen mode: ${err.message} (${err.name})`);
+    });
+} else {
+  document.exitFullscreen();  
+}
+
+});
+
+      // Clear canvas  
+      context.clearRect(0, 0, canvas.width, canvas.height);
+      // In gameLoop()
+         if(isPaused) { 
+           drawPauseMenu();
+         }
+
+      if(!isPaused) {
+
+      // Draw paddles
+      context.fillRect(paddleX, paddleY, paddleWidth, paddleHeight);
+      context.fillRect(aiPaddleX, aiPaddleY, paddleWidth, paddleHeight);
+      
+      // Move AI paddle
+      aiPaddleY += (ballY - aiPaddleY - paddleHeight/2) * 0.09;
+      
+      // Bounce ball off paddles
+      if(ballX <= paddleWidth && ballY > paddleY && ballY < paddleY+paddleHeight) {
+        ballSpeedX = -ballSpeedX;
+      }
+      else if(ballX >= canvas.width - paddleWidth && ballY > aiPaddleY && ballY < aiPaddleY+paddleHeight) {
+        ballSpeedX = -ballSpeedX;  
+      }
+      
+      // Move ball
+      ballX += ballSpeedX;
+      ballY += ballSpeedY;
+      
+      // Bounce ball off top and bottom
+      if(ballY < 0 || ballY > canvas.height) {
+        ballSpeedY = -ballSpeedY;
+      }
+      
+      // Draw ball
+      context.beginPath();
+      context.arc(ballX, ballY, 10, 0, Math.PI*2);
+      context.closePath();
+      context.fill();
+      
+      // Display score
+      context.font = "32px Arial"; 
+      context.fillText(playerScore, 20, 40);
+      context.fillText(aiScore, canvas.width - 60, 40);
+      
+      // Check for score
+      if(ballX < 0) {
+        aiScore++;
+        ballReset();
+      }
+      if(ballX > canvas.width) {
+        playerScore++;
+        ballReset();  
+      }
+      
+      drawDottedLine();
+      
+      requestAnimationFrame(gameLoop);
+
+      }
+    }
+
+    function drawDottedLine() {
+
+      for(let i = 0; i < canvas.height; i+=15) {
+       context.fillRect(canvas.width/2 - 1, i, 2, 10); 
+    }
+
+}
+
+    function drawPauseMenu() {
+
+    context.fillStyle = "rgba(0, 0, 0, 0.5)";
+    context.fillRect(0, 0, canvas.width, canvas.height);
+
+    context.fillStyle = "white";
+    context.font = "32px Arial";
+    context.fillText("Paused", canvas.width/2 - 50, canvas.height/2);
+
+    var resumeButton = {
+    x: canvas.width/2 - 50, 
+    y: canvas.height/2 + 20,
+    width: 100,
+    height: 50
+  }
+
+  function toggleDarkMode() {
+  if (darkMode) {
+    canvas.style.backgroundColor = "#333";
+    context.fillStyle = "#fff";
+  } else {
+    canvas.style.backgroundColor = "#fff";
+    context.fillStyle = "#000";
+  }
+}
+
+
+  context.fillRect(resumeButton.x, resumeButton.y, resumeButton.width, resumeButton.height);
+  context.fillText("Resume", resumeButton.x + 25, resumeButton.y + 30);
+
+  if(mouseX > resumeButton.x && 
+     mouseX < resumeButton.x + resumeButton.width &&
+     mouseY > resumeButton.y && 
+     mouseY < resumeButton.y + resumeButton.height) {
+
+       togglePause();
+  }
+  
+}
+
+    document.addEventListener('keydown', function(event) {
+     if(event.key === 'p') {
+        togglePause(); 
+     }
+
+     
+    });
+
+    document.addEventListener('keydown', function(event) {
+     if(event.key === 'Escape') {
+        togglePause(); 
+     }
+
+     
+    });
+
+    function togglePause() {
+     if(isPaused) {
+      isPaused = false;
+     } else { 
+       isPaused = true;
+     }
+    }
+    
+    function ballReset() {
+      ballX = canvas.width/2;
+      ballY = canvas.height/2;
+      ballSpeedX = -ballSpeedX;
+    }
+    
+    gameLoop();
+
+    // Sounds
+var hitSound = new Audio('hit.wav'); 
+var scoreSound = new Audio('score.wav');
+
+// Play sounds
+hitSound.play(); 
+scoreSound.play();
+
+// Pause menu
+var isPaused = false;
+
+function togglePause() {
+  if(isPaused) {
+    isPaused = false;
+  } else {
+    isPaused = true; 
+  }
+}
+
+// Check if paused
+if(!isPaused) {
+  // Run game loop  
+}
+
+// Difficulty settings
+var difficulty = 'Medium'; // Easy, Medium, Hard
+
+if(difficulty == 'Easy') {
+  ballSpeed = 3;
+  aiPaddleSpeed = 0.05; 
+} else if(difficulty == 'Hard') {
+  ballSpeed = 7;
+  aiPaddleSpeed = 0.11;
+}
+
+// Volume control
+var volume = 0.5; // 0 to 1
+
+hitSound.volume = volume;
+scoreSound.volume = volume;
+
+// Save score  
+document.cookie = "highScore=" + playerScore;
+
+// Get high score
+var highScore = parseInt(document.cookie.split("=")[1]);
+
+// Multiplayer 
+var roomCode = 'abc123'; 
+
+socket.emit('join', roomCode); 
+
+socket.on('opponentMove', (paddleY) => {
+  // Update opponent's paddle position 
+});
+
+// Dotted line
+function drawDottedLine() {
+  for(let i = 0; i < canvas.height; i+=15) {
+    context.fillRect(canvas.width/2 - 1, i, 2, 10);
+  }
+}
+
+drawDottedLine();
+
+    
+  </script>
+
+</body>
+</html>
